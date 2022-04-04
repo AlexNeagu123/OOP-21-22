@@ -1,0 +1,331 @@
+Castarea intre clase derivate intre ele: 
+Reguli de castare :
+1) O clasa derivata poate fi castata la o clasa parinte
+2) Nu e posibil de castat din clasa de baza in clasa derivata fara cast explicit
+3) Daca operatorul de castare este suprascris, nu se mai aplica nimic de sus
+
+Daca derivarea nu este publica, nici castarea nu se poate permite!
+Cand vorbim de clase de baza si derivate exista doua notiuni de baza in C++ : upcast si downcast
+
+Exemplu general:
+Class A {public: int a1, a2, a3; };
+class B : public A {public: int b1, b2; };
+class C : public B {public: int c1, c2; };
+Cazul 1:
+	void main() {
+		C object;
+		A *base = &object;
+	}
+Aici se face UPCAST : De la copil spre parinte (conversie spre baza)
+Mereu este posibil si sigur sa facem acest lucru!
+Compilatorul este smart si isi da el singur seama cum sunt reprezentate clasele astea in memorie, respectiv la ce offset sa se duca.
+
+Cazul 2:
+	void main() {
+		A object;
+		C * child = (C*)(&object);
+	}
+Aici se face DOWNCAST: De la parinte spre copil (conversie spre derivare)
+Trebuie neaparat sa facem o castare explicita sau dinamica!
+Nu este mereu sigur.
+
+La UPCAST apare un caz interesant: Conceptul de object slicing.
+Daca am un obiect de tipul B b_object si o functie DoSomething(b_oject), iar cand definesc functia scriu void DoSomething(A object) se face intr-adevar o copiere a obiectului B pe stiva inainte sa se 
+intre in functie, doar ca se face doar la campurile din clasa A! Fiind derivat din clasa A, obiectul B contine deja toate datele din A deci procesul de upcast este simplu
+Daca definim un copy-constructor in A, atunci se apeleaza el chiar daca pasam obiect de tipul B.
+
+Alta utilizare a object slicing: 
+B b_object(5);
+A a_object = b_object;
+Creem un obiect de tip A dintr-un obiect de tip B care il deriveaza!
+
+Cand am discutat mai sus despre UPCAST, am vazut ca daca clasa B este derivata din clasa A si se face o castare de la B la adresa lui A, compilatorul automat face niste adunari pe offsetul adresei B ca sa 
+ajunga la adresa lui A! Totusi, daca ne dorim ca intr-un pointer de tip A sa stocam exact adresa obiectului de tip B (fara aceste offseturi ajutatoare?)
+Prima solutie: B* b = (B*)((void *)(&c));
+O solutie mai eleganta si mai moderna este folosirea reinterpret castului:
+B* b = reinterpret_cast<B*> (&c);
+Specific clar ca adresa de tipul c vreau sa mi-o duca fix asa in pointerul b*
+Defapt, s-au introdus mai multe astfel de tipuri de castare:
+1) static_cast
+2) const_cast
+3) dynamic_cast
+4) reinterpret_cast
+Toate respecta patternul cast<type to cast to> (expression)
+
+1) reinterpret_cast - 
+	cea mai rapida castare. Schimba tipul pointerului in timp ce ADRESA ramane fix aceeasi! (Nu se face nici o operatie ajutatoare)
+	Dezavantaj: Permite casturi intre pointeri care nu au absolut nici o legatura unul cu altul
+	Chiar daca derivarile sunt private poate fi folosit, dar trebuie sa avem grija cum sunt puse in memorie obiectele!
+	reinterpret_cast nu poate fi folosit cu valori numerice gen : int x = reinterpret_cast<int> (100)
+	Totusi se pot copia adrese de memorie in variabile de tip int!
+	De asemenea, functioneaza si cand lucram cu referinte:
+	int number = 10;
+	reinterpret_cast<int &> (number) = 20;
+	Daca se fac anumite setari la compilator, reinterpret_castul se poate folosi intr-un mod foarte powerful. Putem sa ne extragem adresele unde incep niste functii in limbajul de asamblare.
+	de exemplu daca am o functie int addition(int x, int y) si fac char *a = reinterpret_cast<char*>(addition); in a mi se pune adresa de memorie unde incepe functia!
+2) static_cast -
+	poate fi utilizat pentru transfer de numere 
+	int x = static_cast<int>(1000)
+	stie sa faca diverse conversii intre tipuri : char x = static_cast<char (3.75); stie ca trebuie sa il faca pe 3.75 intai int si dupa char!
+	interzice conversii gen char x = static_cast<char>("test") from const char[5] to char
+	Daca am doua clase A si B care nu au nici o legatura intre ele si fac A *a = static_cast<A*>(&b), static castul interzice asemenea castari!
+	Totusi el poate functiona daca in clasa B specific un operator de castare: operator A* () {return newA(); } si la static_cast fac A *a = static_cast<A*>(b)
+	Static castul functioneaza in asemenea cazuri doar daca exista o regula bine definita descrisa undeva
+	Static castul incearca sa faca o transformare cat mai sigura
+	O utilizare frumoasa a static_castului este in cazurile de ambiguitate la method overloading.
+	Daca am un add(int, char) si un add(char, int), eu pot sa specific exact pe care vreau sa il folosesc daca scriu: 
+		int suma = static_cast<int(*)(int, char)> (Add)(100, 200); Aici i-am zis exact sa foloseasca functia cu int, char
+3) dynamic_cast -
+	se utilizeaza atunci cand merge vorba de polimorfism
+	converteste un pointer de un tip la un pointer de alt tip, fiind asigurat ca exista o legatura de derivare intre cele doua tipuri
+	de asemenea, pentru dynamic_cast campul RTTI trebuie sa fie prezent, deci se lucreaza doar cu clase care au macar o metoda virtuala
+	cel mai incet cast care exista
+	valideaza ca am primit date si pointerul care trebuie!
+	trebuie neaparat sa avem un virtual function in una din clase
+	depinde foarte mult de contextul in care a fost scris:
+		Daca am clasa C care il deriveaza pe B si
+		scriu B b; C *c = dynamic_cast<C*> (&b), c va fi de tip NULL! Acest lucru se intampla pentru ca compilatorul isi da seama ca acel b este stand alone, si dynamic_castul nu intelege
+		de unde sa obtina acele campuri suplimentare din C!
+		Daca in schimb scriu
+		C c; B *b = (B*) &c; C *c2 = dynamic_cast<C*>(b), compilatorul isi da seama ca b-ul are in preajma sa campurile lui C, respectiv stie sa faca castarea!
+	Compilatorul poate sa faca niste castari foarte misto cu dynamic_cast
+	Exemplu: 
+	class A {..} (are metoda virtuala)
+	class B {..} (are metoda virtuala)
+	class C: public A, public B {...}
+	void main() {
+		C c;
+		A *a = (A*) &c;
+		B *b = dynamic_cast(a);
+	}
+	Aici compilatorul isi da seama ca a este un pointer de tip a in interiorul unui obiect de tip C. Deoarece stie acest lucru, el e constient ca clasa C il contine si pe B, deci stie cum sa faca castul 
+	de la A la B!
+4) const_cast -
+	schimba caracteristicile constante ale unui obiect
+	trebuie de avut grija sa nu apara undefined behaviour
+	
+	int x = 100;
+	const int *ptr = &x;
+	int *non_const_pointer = const_cast <int *> (ptr)
+	*non_const_pointer = 200;
+	--- aici practic am facut o castare din const in non const (desi in mod normal nu avem voie sa facem acest lucru) si am modificat valoarea care se gaseste la adresa lui x
+	
+	Totusi atentie, in cazul de mai sus x-ul este o variabila locala, iar compilatorul o pune pe stack corespunzator variabilelor locale care pot fi modificate.
+	Acel const pointer l-am pus noi secundar
+	
+	Daca in schimb avem ceva de genul 
+	const char *txt = "C++ exam"
+	char *non_const_pointer = const_cast<char *>(txt)
+	non_const_pointer[0] = 'c';
+	..
+	Codul va compila dar va da RunTime error!
+	Compilatorul by default pune adresa pointerului txt intr-o pagina de memorie care NU are dreptul de write!
+	Chiar daca noi facem pointerul non_constant, daca acea pagina de memorie nu are drept de write oricum nu vom putea modifica nimic. 
+	Poate aparea comportament nedefinit cand fac 
+	
+	const int x = 100;
+	*(const_cast<int*>(&x)) = 200;
+	eu cand voi da cout << x; compilatorul oricum il va scrie pe 100, pentru ca in spate x-ul se interpreteaza ca valoarea constanta 100 si se da direct push 100, nu push x!
+	teoretic as putea da cout << *(cont_cast<int*>(&x)) << '\n'; ca sa imi afiseze 200, dar aici deja nu mai utilizez x-ul in modul lui default ci efectiv creez o adresa de memorie
+	Totusi, daca const int x este folosit intr-o clasa, ceva in genul a ce am scris mai sus ar functiona! Compilatorul cand vine vorba de clase se foloseste de adresa de memorie la care se gaseste x
+	pentru a initializa si a face operatii! De aceea, putem sa schimbam valoarea constanta fix cu un cod de mai sus!
+	
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Macrouri: 
+Compilatorul poate decide sa inlocuiasca ceva in faza de precompilare.
+#define <macro> <value>
+E ca un find and replace!
+Pot sa il scriu oriunde in cod. 
+Putem scrie macrouri pe mai multe linii utilizand "\" la finalul fiecarei linii.
+ATENTIE! Nu punem nici un caracter dupa "\" ci doar ENTER!
+#define Print\
+	if (value > 100) printf("greater!"); \
+	else printf("Smaller!");
+
+Exista si optiunea de #undef <macro>
+Print asta eu zic ca nu mai vreau sa se utilizeze acel macro
+Pot sa unesc mai multe macrouri
+
+#define BUFFER_SIZE VALUE
+#define VALUE 1048
+
+Pot include si functii in macrouri, utilizare foarte importanta!
+#define MAX(x, y) ((x)>(y)?(x) : (y))
+Macrourile se utilizeaza foarte des pentru validari (functii de check)
+Exemplu: 
+#define CHECK(condition) \
+if(!(condition)) { printf("The condition : %s wasn't evaluated correctly", #condition); };
+La #condition, rolul # este de a transforma expresia intr-un string (de asta are specificator de format %s)
+Pot sa il folosesc ca sa imi definesc mai mute functii direct
+#define SUM(type) \
+	type add_##type(type v1, type v2) {return v1 + v2;}
+
+SUM(int)
+SUM(double)
+SUM(char)
+Dupa aceste 3 apeluri eu mi-am creat efectiv 3 functii add_int, add_double si add_char
+Acel '##' concateneaza efectiv add_ si ce este stocat in type intr-un nou string!
+Macrourile nu suporta overloading
+Fiecare parametru din functiile macro e recomandat de folosit cu paranteze.
+Altfel, daca avem expresii numerice riscam sa pierdem sensul a ce am vrut sa scriem!
+DIV(x,y) x/y -- cand dau DIV(10 + 10, 5 + 5) compilatorul face 10 + 10 / 5 + 5
+Div(x,y) ((x)/(y)) -- cand dau DIV(10 + 10, 5 + 5) compilatorul face ((10 + 10) / (5 + 5))
+Atentie sa folosim acolade {} daca avem mai multe instructiuni in macro
+Uneori e bine sa folosim obiecte intermediare int t_1 = (x) si int t_2 = (y) ca sa evitam cazuri ciudate gen apel cu x++
+Exista niste macrouri predefinite (__TIME__, __DATE__ ..)
+Unul destul de important este __COUNTER__
+E ca o variabila care la inceput e 0 si de fiecare data dupa ce este apelata se incrementeaza
+
+Ce este INLINE?
+Atunci cand declaram unele functii by default 
+int Max(int x, int y)
+{
+	return x > y ? x : y;
+} 
+La apeluri de astfel de functii exista o serie de pasi care se fac : sa punem pe stiva sa curatam stiva, creem staburile pentru functie cand intram samd..
+O prima metoda de optimizare : 
+Fac un macro #define MAX(x, y) return (x)>(y)?(x):(y) 
+Cand codul ajunge la partea respectiva, el nu mai incarca tot pe stiva ci doar inlocuieste niste chestii cu o secventa de cod
+O solutie moderna : cuvantul inline!
+inline int Max(int x, int y) 
+{
+	return x > y ? x : y;
+}
+keywordul inline nu forteaza compilatorul sa faca ceva ci doar ii RECOMANDA sa insereze codul din interiorul functiei MAX direct in cod, si sa nu mai faca acele pushuri specifice functiilor
+Nu pentru toate functiile merg aceste optimizari ale compilatorului de a le face inline. (De exemplu functiile recursive)
+Deci inline --> doar recomandare (compilatorul va incerca), trebuie utilizat in mod release
+Macrourile --> garantia 100% ca se efectueaza acel cod dar e mult mai greu al debug
+La clase compilatorul incearca by default sa faca o chestie inline daca scriem metodele in definitia claselor! (se prinde oarecum)
+Nu devin inline daca avem clase exportate
+Compilatorul e smart si uneori poate sa nu foloseasca explicit o variabila chiar daca noi o declaram.
+De exemplu int x = rand(); cout << x; -- compilatorul face direct cout << rand();
+Putem evita aceste optimizari daca folosim keywordul "volatile"
+volatile int x = rand() ..
+Utilizat pe programre care functioneaza multithreaded!
+Sa fie coordonare intre fire
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+LITERALI
+Niste operatori mai speciali care tot au o rolul de a oferi o anumita semnificatie unor blocuri de text
+componente : <return_type> operator"" _ <liter_name> (parameter_type)
+parameter_type poate fi doar : const char*, unsigned long long int, long double..)
+underline-ul nu e obligatoriu dar se dau warninguri daca lipseste
+int operator"" _baza_3(const char *x) ...
+in cod pot sa apelez aceasta functie cu 121314_baza_3
+Pot folosi doar anumite tipuri la parametri
+il pot apela doar cu valori numerice constante sau stringuri constante (NU pot cu variabile)
+putem apela si cu siruri de caractere: "c++ test today"_reverse
+in parametrii literalului putem primi si sizeul stringului (cu size_t in fata) pe care ni-l va da compilatorul automat _reverse(..size_t sz)
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+TEMPLATEURI
+	-derivate din notiunea de macro
+	-scopul e de a defini un model de functie/clasa in care tipurile de date care sunt folosite acolo pot fi inlocuite de la caz la caz
+	-exista un keyword "template"
+	-ca si macros, templateurile genereaza extra cod specific anumitor tipuri de date) dar e mai rapid si eficient
+	-functioneaza pentru clase si functii
+	-functioneaza pe baza de substitutii ca la macrouri
+	-subsituirea pentru clase nu se face la prima aparitie a clasei respective ci separat ca alte instante ce utilizeaza acelasi template sa acceseze direct aceste functii
+	-daca exportam, FOARTE important sa fie intr-un fisier .h (deoarece se face in faza de precompilare)
+Cum definim?
+
+template<class T>
+Return_type function_name(parameters)
+
+SAU
+
+template<typename T>
+Return_type function_name(parameters)
+
+class si typename sunt aceleasi
+CEL PUTIN unul dintre Return_type sau parametri trebuie sa fie de tipul T!
+template<class T>
+T Sum(T value_1, T value_2)
+{
+	return value_1 + value_2;
+}
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Templatizari pentru functii
+template<class T>
+T Sum(T value_1, T value_2)
+{
+        return value_1 + value_2;
+}
+void main(void) {
+	double x = Sum(1.25, 2.5);
+}
+Ce face compilatorul? Se uita ca avem un template pentru sum, CREAZA acea functie sum care primeste ca parametrii double si da return la double si o foloseste
+Daca facem Sum(1, 2.5) nu se va compila codul!
+De ce? Pentru ca parametrii nu sunt de tip identic, iar noi in template prin faptul ca am pus T peste tot asta am cerut!
+De fiecare data cand vede template, compilatorul il trateaza ca pe un sablon in care doar inlocuieste T-ul!
+
+T sum(int, int)
+Uneori compilatorul nu stie care sa fie tipul de return, si atunci e bine in practica sa folosim 
+
+int x = Sum<int> (1, 2) 
+double d = Sum<double>(1.5, 2.5)
+Prin asta se specifica explicit tipul lui T din apel ca sa nu exista ambiguitati!
+
+Putem defini mai multe tipuri T la templateuri:
+template<class T1, class T2, class T3>
+T1 Sum(T2, T3)
+in main scriem ceva de genul Sum<int, double, double>(1.5, 2.4)..
+Putem introduce parametri default dar trebuie sa avem grija la asignare
+Nu putem scrie T3 y = 5 ci trebuie sa scriem T3 y = T3(5).
+Clasa T3 are un constructor care transforma implicit valorile in tipul T3
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Similar cu functiile, se pot defini templateuri si la nivel de clase
+template <class/typename T>
+class MyClass {
+..
+}
+Probleme care pot aparea :
+Cand am o metoda in clasa (sa zicem void Push(T value) .. ) e okay daca lucrez cu tipuri simple de date. Daca insa vreau sa lucrez cu obiecte si dau push la un obiect, este ineficient sa se copie mereu.
+M-ar tenta sa fac void push(T &value) - merge bine cand vine vorba de obiecte dar la valori numerice constante da eroare! 
+Solutia? Facem push(const T &value)!
+
+Important cum lucreaza constructorii:
+class Pair {
+	T1 key;
+	T2 value;
+public:
+	Pair() : Key(T1()), Value(T2()) {}
+}
+In acest caz, o astfel de sintaxa functioneaza si pentru tipurile de baza, dar si pentru obiectele create de noi!
+Key(T1()) face urmatorul lucru: Apeleaza constructorul de copiere din Key in care pune un obiect nou creat T1() caruia i s-a apelat constructorul default.
+Pentru tipurile de baza, constructorii default sunt 0, nullptr etc..
+Merge sa facem si constructori expliciti: Pair(const T1 &v1, const T2 &v2) : Key(v1), Value(v2)
+Putem folosi templateuri in templateuri fara probleme: Stack<pair<const char*, int>> s;
+Putem folosi si macrouri : #define p(k,v) pair<const char *, int> P("mama", 12);
+Mai pot transmite parametri unui template: exemplu des utilizat este atunci cand dau sizeul unei chestii
+template <class T, int Size>
+class stack..
+care este instantiat stack<int,100> s;
+observam ca acel 100 este parametrul de dupa T!
+Pot seta si valori default in caz ca nu dau parametri!
+Exemplu template<class T, int Size = 100>
+Atentie, de fiecare data cand creez o clasa din template cu un parametru diferit, se face o noua clasa unde se scrie efectiv un bloc intreg de cod.
+Putem pune valori default si la tipul T : template <class T = int> 
+si in cod sa scriem Stack <> s; Atentie, trebuie neaparat sa punem "<>"
+Putem pune METODE TEMPLATIZATE intr-o clasa basic! 
+Apelez ceva de genul i.setValue<float>(0.5f);
+Putem templatiza si variabilele statice dintr-o clasa (static T count)
+Dar trebuie sa le initializam pe fiecare care ar putea fi folosita:
+int Number<int>::Count = 10;
+int Number<char>::Count = 20;
+Clasele templatizate pot avea functii friend!
+friend void Test(Number<t> &t).
+functiile friend pot primi parametru clase templatizate doar ca trebuie de scris functia respectiva pentru fiecare instanta de tip de date
+void Test(Number<double> &t)..
+daca scriu continutul functiei friend chiar in clasa templatizata, nu e neaparat sa specific tipul de date
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Template-urile specializate
+Pentru unele clase/functii dorim sa specificam ce se intampla pentru un caz particular de tipuri de date
+Exemplu : avem o clasa care penru charuri se comporta diferit fata de inturi
+ce facem?
+declaram templateul general : templat<class T> urmat de functia/clasa respectiva
+dupa care mai declaram un template : template<> urmat de nume_functie/clasa<tipul_de_date_particular)  ...
+
+Ce se intampla daca cineva vre sa utilizeze incorect clasa noastra templatizata? Exemplu : declara size = -10
+In constructorii clasei pot folosi un asa zis static_assert(condition, errorMessage). Daca folosim asta, in faza de compilare a codului se verifica conditia respectiva, iar in caz ca conditia e falsa
+apare mesajul specificat de eroare! 
+static_assertul primeste variabile constante! Trebuie deduse in faza de compilare
+Putem folosi templateuri specializate + static_asserturi pentru a filra tipul de date introdus de utilizator la declararea clasei
