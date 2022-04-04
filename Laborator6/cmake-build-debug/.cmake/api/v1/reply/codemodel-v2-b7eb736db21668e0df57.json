@@ -49,8 +49,8 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "/home/alexandru/CLionProjects/Laborator6/cmake-build-debug",
-		"source" : "/home/alexandru/CLionProjects/Laborator6"
+		"build" : "/home/alexandru/Documents/OOP/Laborator6/cmake-build-debug",
+		"source" : "/home/alexandru/Documents/OOP/Laborator6"
 	},
 	"version" : 
 	{

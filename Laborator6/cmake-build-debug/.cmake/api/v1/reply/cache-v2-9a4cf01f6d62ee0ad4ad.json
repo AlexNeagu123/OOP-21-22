@@ -55,7 +55,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/home/alexandru/CLionProjects/Laborator6/cmake-build-debug"
+			"value" : "/home/alexandru/Documents/OOP/Laborator6/cmake-build-debug"
 		},
 		{
 			"name" : "CMAKE_CACHE_MAJOR_VERSION",
@@ -579,7 +579,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "/home/alexandru/CLionProjects/Laborator6"
+			"value" : "/home/alexandru/Documents/OOP/Laborator6"
 		},
 		{
 			"name" : "CMAKE_INSTALL_PREFIX",
@@ -1111,7 +1111,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/home/alexandru/CLionProjects/Laborator6/cmake-build-debug"
+			"value" : "/home/alexandru/Documents/OOP/Laborator6/cmake-build-debug"
 		},
 		{
 			"name" : "Laborator6_IS_TOP_LEVEL",
@@ -1135,7 +1135,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "/home/alexandru/CLionProjects/Laborator6"
+			"value" : "/home/alexandru/Documents/OOP/Laborator6"
 		}
 	],
 	"kind" : "cache",
