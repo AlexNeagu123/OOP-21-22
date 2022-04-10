@@ -1,0 +1,13 @@
+# ninja log v5
+3	52	1649585379255189988	CMakeFiles/Antrenament.dir/Procesator.cpp.o	97ce1511bf4178e7
+2	866	1649591059662838102	CMakeFiles/Antrenament.dir/ProcesatorNumaraCuvinte.cpp.o	1c38548e3b0ff8ca
+1	850	1649591084802741733	CMakeFiles/Antrenament.dir/main.cpp.o	1f91919486e1087b
+851	1095	1649591085046701972	Antrenament	75bc5143268e1181
+2	407	1649587972423629477	CMakeFiles/Antrenament.dir/ListaParagrafe.cpp.o	c5ecd67c9438532d
+1	1112	1649591642290977947	CMakeFiles/Antrenament.dir/main.cpp.o	1f91919486e1087b
+1	1035	1649591736569682092	CMakeFiles/Antrenament.dir/ProcesatorNumaraCuvinte.cpp.o	1c38548e3b0ff8ca
+1	1099	1649591736633782294	CMakeFiles/Antrenament.dir/main.cpp.o	1f91919486e1087b
+2	1009	1649591776019476163	CMakeFiles/Antrenament.dir/ProcesatorNumaraPropozitii.cpp.o	2d39fd015b0a78cf
+1009	1220	1649591776227419471	Antrenament	36603f56e9337d62
+3	776	1649591799737782499	CMakeFiles/Antrenament.dir/ProcesatorNumaraCuvinte.cpp.o	1c38548e3b0ff8ca
+777	957	1649591799917792778	Antrenament	36603f56e9337d62
