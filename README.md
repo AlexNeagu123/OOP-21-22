@@ -1,2 +1,2 @@
 # OOP-21-22
-Notite la curs + Probleme rezolvate OOP 2021-2022
+Problems solved related to OOP. OOP subject - Faculty of Computer Science 2021-2022
