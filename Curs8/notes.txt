@@ -1,0 +1,85 @@
+C++-ul face automat niste optimizari in faza de compilare ca sa fie un cod mai scurt. 
+De exemplu, variabilele constante sunt inlocuite cu valorile stocate in faza de compilare ceea ce produce un bonus de performanta.
+La fel si unele operatii aritmetice in faza de compilare sunt tranformate intr-o valoare --> ceea ce duce la un cod in assembly mai scurt si mai performant
+
+keywordul constexpr : spune compilatorului ca expresia/functia respectiva returneaza mereu o variabila constanta care este si determinista
+Exemplu : constexpr int GetCount() { return 5; } 
+Limitari :
+1) Nu poate fi void
+2) Variabilele locale trebuie initializate instant! Nu trebuie sa existe perioade de timp in care o variabila sa aiba o valoare nedeterminista!
+   Cel mai bine insa folosim variabile const, care oricum trebuie initializate
+3) Parametrii pe care ii dau trebuie sa fie valori constante
+4) Poti sa ai mai multe returnuri cu conditia ca pe fiecare branch valoarea returnata sa fie determinista 
+
+Putem face ceva de genul constexpr int x = SomeValue(), unde constexpr int SomeValue() { return 5; } 
+In assembly, codul produs nici nu apeleaza functia SomeValue sau variabila x.	 
+Daca x era const simplu, se apela functia SomeValue()!
+(Standardul de >C++17!)
+
+O diferenta intre const si constexpr cand vine vorba de clase:
+
+Clasele pot sa aiba date membru de tip const valoarea carora depinde de o initializare si nu poate fi schimbata ulterior
+Clasele pot sa aiba date membru de tip constexpt, valoarea carora poate fi DEDUSA din faza de compilare si care nu poate fi schimbata
+
+Const e o valoare care se determina la runtime, nu stiu initial neaparat cat o sa fie.
+Constexpr stiu din prima cat o sa fie (e un const mult mai restrictiv)
+Permis doar sa avem variabile statice constexpr
+
+Putem folosi constexpr la clase si constructori in urmatorul fel :
+Facem constructorul constexpr (in caz ca toate datele membru sunt initializate direct).
+Facem o instanta de clasa constexpr careia ii aplicam constructorul. In acest mod, compilatorul isi da direct seama ce sa puna in datele membru, fara sa mai apeleze efectiv functia constructorului!
+Constexpr se poate folosi si la metodele clasei!
+Mereu trebuie sa fim siguri ca constexpr are o garantie cu ce a fost initializata o anumita chestie. Deobicei unit cu alt constexpr
+
+Si functii constexpr mai complicate, de exemplu fibonacci sau cmmdc pot fi aproximate de compilator in unele cazuri. Nu este clar care este upper_boundul pentru complexitatea algoritmului, dar de multe ori 
+se descurca sa faca deductii si sa nu mai apeleze functia respectiva. 
+Putem testa cu int a[getCount()]. In cazuri de genul trebuie neaparat ca getCount sa fie dedusa de compilator instant.
+La utilizarea literalilor este util constexpr. In loc de 2_Mega, daca il facem constexpr o sa faca mov de numarul in sine direct fara sa apeleze functia.
+
+Nu merge sa fac for(auto it : x) daca x este un vector alocat pe heap : int *x = new int..
+Ca sa fac un astfel de forEach sa fie disponibil pentru clase, trebuie neaparat sa am doua functii : begin() si end(). Mai mult decat atat, rezultatul acestor functii trebuie sa suporte operatiile ++, != si *
+De obicei, functiile astea returneaza pointeri. Functia end() ar fi bine sa returneze prima adresa de dupa ultima adresa disponibila! Practic adresa la care sa se opreasca
+Pot defini propriul meu obiect iterator daca am de-a face cu clase mai complicate. Trebuie insa sa fiu atent sa ii definesc operatorii ++, != si *
+
+Keywordul "auto" - pot sa definesc o variabila fara sa ii stiu tipul. Daca scriu auto <var_name> = <expresie>, el analizeaza tipul expresiei si il transmite si variabilei.
+Pot sa schimb tipul daca fac niste casturi explicite : auto x = (char*)"test". Totusi, el nu schimba proprietatile de baza ale unui tip (de ex. constant)
+Functioneaza pentru clase. Functioneaza pentru const
+Merge ca sa extrag pointerul unei functii
+Utilizat cel mai des la templateuri
+Exista type alias : using <alias_type> = <the actual type>
+Similar cu typedef-ul. 
+Exemplu: using map = std::map<const char *, int>;
+map m = ...  
+
+Alta chestie smechera: decltype(<variable>) - practic returneaza tipul variabilei.
+Util cand vreau sa declar o variabila de tipul altei variabile:  decltype(a) aa; (Nu o initializez neaparat ca la auto)
+decltype(v[0]) returneaza referinta catre acel element din array!
+
+Din C++17 s-a adaugat structure binding.
+Daca avem o colectie de date (data) putem extrage informatiile relevante din ea si sa le stocam in variabile.
+Pentru un array a[2] pot face auto [x, y] = a sau auto &[x, y] = a daca vreau sa modific elementele din a.
+Isi poate da seama si daca dau o structura dupa egal (asigneaza tipurile corecte de baza).
+
+Exceptii : 
+	Daca fac structure binding pe clasa trebuie sa ma asigur ca datele sunt publicce
+	Trebuie sa ma asigur ca numarul de date membre din obiect coincide cu numarul de variabile pe care le specific eu in auto[...]
+
+Se utilizeaza frumos la map-uri (cand iteram prin map).
+for (auto [name, grade] : Grades)
+In STL pot face ceva asemanator cu make_tuple + tie. Variabilele trebuiau definite inainte
+
+Polimorfism static:
+Sintactica templateurilor se verifica doar atunci cand creem o instanta de clasa respectiva.
+Trickul urmator: 
+
+template<typename T> 
+class Base { ... };
+
+class Derived: public Base<Derived> {...};
+
+Se numeste polimorfism STATIC!
+Nu va da eroare de compilare pentru ca din punct de vedere sintactic templateul Base se verifica dupa definirea clasei Derived.
+In clasa Base putem face niste metode care sa casteze this-ul la una din clasele derivate (folosind static_cast<T*>(this)) si sa apelam functia din derivarea de care avem nevoie
+Putem utiliza si variabile statice (definim variabile statice in clasele derivate) si este mai putin cod de scris
+Putem returna referinte catre obiectul cu care se lucreaza (T&). Asta se numeste polymorphic chaining.
+

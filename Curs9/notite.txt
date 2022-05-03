@@ -1,0 +1,74 @@
+Lambda Expression - Functie Fara Nume 
+Exemplu: Sort(students, 3, [](Student &s1, Student &s2) {return s1.Grade > s2.Grade; } );
+			   ------------------------------------------------------------
+Defapt, structura unei lambda este: 
+
+[captures] (parameters) -> return type {body} --------- [x, y] (int a, float b) -> bool { return (a*b) < (x+y); } 
+[captures] (parameters) { body } ------- [x] (int *xx) { return *xx+x; } 
+[captures] { body } {return a+b; }
+
+Care e faza cu captarile?
+[] => nu captam nimic
+[a,b] => captam a si b facand copie
+[&a, &b] => captam a si b prin referinta
+[this] => captam tot obiectul
+[&] => captam variabilele utilizate in body-ul lambdei prin referinta
+[=] => captam variabilele utilizate in body-ul lambdey prin copiere
+Combinatii precum [=, &a] (toate prin copie exceptand a) sau [&, a] (toate prin referinta exceptand a)
+Practic atunci cand captam, spunem functiei ca vom utiliza niste variabile declarate deja in scope-ul nostru!
+Lambda nu are un tip anume, deci e bine de folosit auto!
+Daca captam prin copie, nu mai conteaza ca urmeaza sa modificam variabila respectiva, nu va influenta cu nimic utizarea ei in lambda (va ramane valoarea initiala)
+Daca captez prin referinta, se tine cont de evolutia variabilei captate pe parcurs
+Captura prinde si parametrii functiei
+
+
+Lambda sunt defapt niste obiecte, iar atunci cand apelam acea functie: se apeleaza operatorul "()" din acel obiect.
+Pentru fiecare lambda creat, compilatorul genereaza o clasa lambda_xxxxxxxxxx...
+Deci pentru mai multe lambdas (chiar daca scriem aceeasi functie) se genereaza clase diferite.
+Daca vrem sa reutilizam aceeasi clasa putem incerca cu decltype(lambda1) lambda2 = lambda1. (Nu e suportat de toate compilatoarele)
+
+Ce se intampla cu captarile in spate?
+Daca sunt captari care copiaza, practic se creaza un constructor si date membru pentru clasa de lambda. 
+In constructor, sunt preluate chestiile captate si asignate datelor membru
+
+Daca captarile sunt prin referinta, datele membru din clasa sunt referinte (int &b)
+Daca captez clase, este utilizat copy constructorul atunci cand se construieste clasa lambda
+La [=] se fac date membru doar pentru variabilele UTILIZATE
+
+Daca captez this, clasa lambda este friend cu clasa respectiva deci poate accesa campurile private
+Intrebare: Daca lambda e clasa, cum am reusit sa o primesc ca parametru printr-un pointer la o functie in primul exemplu?
+Raspuns: Daca nu avem captura in lambda (nu avem date membru in clasa asociata lambdei) este posibila conversia de la obiect la functie!
+In spate, compilatorul genereaza o functie definita exact ca metoda din clasa + un operator de castare spre pointer de functie care returneaza adresa functiei generate.
+Acest lucru functioneaza pentru ca acea functie nu se foloseste de this in nici un fel
+
+Lambda se combina bine cu STL!
+
+include<algorithm> -> avem acces la functia for_each(begin, end, func) care practic itereaza peste fiecare element din container si aplica functia func. Putem scrie functia func ca un lambda
+Alte functii de genul: count_if, remove_if,  std::function.
+Lambda-urile se combina bine cu std::function. Practic aceste function tot sunt obiecte pe care le putem pasa functiilor, returna si etc.
+Atentie cand wrapam lambda-uri care capteaza adrese in functions! Pot aparea erori ciudate.
+Putem utiliza std::function ca sa wrapam lambdauri care capteaza si sa le dam mai departe ca parametru pentru alte functii! In acele functii, primim un obiect ca parametru.
+
+Intrebare: De ce la sort pot da ca parametru lambda care capteaza ceva? 
+La priority_queue exista acel obiect CompareModule caruia trebuia sa ii suprascriem operatorul ().
+
+Functiile Lambda pot primi ca parametri auto! In acest caz, se supraincarca operatorul () de mai multe ori, in dependenta de ce apeluri de functii facem (cu ce tipuri de date este inlocuit auto)
+Functioneaza ca un template dar nu e template.
+Din standardul c++20 s-a adaugat optiunea de a templatiza lambdaurile.
+Sintaxa : auto f = []<typename T, typename R> (T v1, R v2) { ... }
+Diferenta fata de auto este ca aici FORTAM ambii parametri sa fie de acelasi tip. In spate, in faza de compilare se genereaza mai multe functii de supraincarcare a operatorului ().
+Putem forta tipu de return prin castare explicita!
+Inca nu s-a introdus apel explicit de template : f<double, int> .. poate in standardele viitoare
+
+Exceptie interesanta. Daca captez prin copiere (exemplu auto [a] (int x, int y ) .. ) NU pot modifica valoarea lui a chiar daca s-a facut o copie a acesteia. Motiv: functia de supraincarcare a op.() 
+este facuta const by default, astfel nu putem modifica datele membre din clasa aferenta lambdei.
+Ca sa rezolvam, facem functia mutable. auto [a] (int x, int y) mutable {}.. In felul asta, practic ii zicem compilatorului ca permitem ca campul a sa fie modificat. Atentie la faptul ca el va ramane modificat
+si pentru urmatoarele apeluri!
+ 
+Chestie misto: Putem initializa variabile chiar in captura fara sa le definim anterior!
+Exemplu auto f1 = [counter = 0] () mutable { return counter++; };
+Practic variabila counter se creaza in momentul in care facem captura. Nu avem voie sa ii specificam tipul, el este dedus prin type inference.
+Putem insa sa castam explicit valoarea care este asignata lui counter. Exemplu: f1 = [counter = (unsigned char) 0] --> counter va fi dedus ca un unsigned char
+
+Din c++17 putem capta si *this!
+Practic se face o copie a obiectului.
