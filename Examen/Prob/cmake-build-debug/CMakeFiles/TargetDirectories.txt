@@ -1,3 +1,0 @@
-/home/alexandru/Documents/OOP/Examen/Prob/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/alexandru/Documents/OOP/Examen/Prob/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/alexandru/Documents/OOP/Examen/Prob/cmake-build-debug/CMakeFiles/Prob.dir
